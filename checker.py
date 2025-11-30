@@ -807,4 +807,4 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         clearScreen()
-        print(f"\n{Colors.CYAN}GOODBYE!{Colors.RESET}"
+        print(f"\n{Colors.CYAN}GOODBYE!{Colors.RESET}")
