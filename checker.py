@@ -723,6 +723,38 @@ def selectSiteMode(gateway):
     else:
         return None, None
 
+def selectSiteMode(gateway):
+    clearScreen()
+    printBanner()
+    
+    sites = loadSites(gateway)
+    builtin_key = f"SIN-{gateway.upper()}"
+    
+    print(f"{Colors.CYAN}SELECT SITE MODE FOR {gateway.upper()}:{Colors.RESET}\n")
+    print(f"{Colors.WHITE}[1]{Colors.RESET} USE BUILT-IN SITES {Colors.GREEN}({builtin_key} - Random){Colors.RESET}")
+    
+    if sites:
+        print(f"{Colors.WHITE}[2]{Colors.RESET} USE CUSTOM SITES {Colors.CYAN}({len(sites)} sites - Random){Colors.RESET}")
+    else:
+        print(f"{Colors.GRAY}[2] USE CUSTOM SITES (No custom sites configured){Colors.RESET}")
+    
+    print()
+    choice = input(f"{Colors.WHITE}CHOOSE: {Colors.RESET}").strip()
+    
+    if choice == '1':
+        return builtin_key, builtin_key
+    elif choice == '2':
+        if not sites:
+            print(f"{Colors.RED}[-] NO CUSTOM SITES CONFIGURED. PLEASE ADD SITES FIRST.{Colors.RESET}")
+            time.sleep(2)
+            return None, None
+        selected_site = random.choice(sites)
+        site_index = sites.index(selected_site) + 1
+        site_label = f"SITE {site_index}"
+        return selected_site, site_label
+    else:
+        return None, None
+
 def selectCustomSite(gateway, sites):
     clearScreen()
     printBanner()
