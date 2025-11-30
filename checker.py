@@ -79,7 +79,9 @@ def loadConfig():
         "api_key": "",
         "api_base": "https://ey-pi-ay.onrender.com",
         "bot_token": "",
-        "chat_id": ""
+        "chat_id": "",
+        "proxy": "",
+        "proxy_enabled": False
     }
 
 def saveConfig(config):
@@ -117,14 +119,16 @@ def printMenu():
     
     key_status = f"{Colors.GREEN}✓ Set{Colors.RESET}" if config.get('api_key') else f"{Colors.RED}✗ Not Set{Colors.RESET}"
     forwarder_status = f"{Colors.GREEN}✓ Enabled{Colors.RESET}" if config.get('bot_token') and config.get('chat_id') else f"{Colors.GRAY}✗ Disabled{Colors.RESET}"
+    proxy_status = f"{Colors.GREEN}✓ Enabled{Colors.RESET}" if config.get('proxy_enabled') else f"{Colors.GRAY}✗ Disabled{Colors.RESET}"
     
     print(f"{Colors.WHITE}[1]{Colors.RESET} START CHECKER")
     print(f"{Colors.WHITE}[2]{Colors.RESET} CONFIGURE API KEY {key_status}")
     print(f"{Colors.WHITE}[3]{Colors.RESET} CONFIGURE SERVER")
     print(f"{Colors.WHITE}[4]{Colors.RESET} CONFIGURE SITES")
-    print(f"{Colors.WHITE}[5]{Colors.RESET} CONFIGURE PROXY")
+    print(f"{Colors.WHITE}[5]{Colors.RESET} CONFIGURE PROXY {proxy_status}")
     print(f"{Colors.WHITE}[6]{Colors.RESET} CONFIGURE FORWARDER {forwarder_status}")
-    print(f"{Colors.WHITE}[7]{Colors.RESET} EXIT")
+    print(f"{Colors.WHITE}[7]{Colors.RESET} BUY API KEY")
+    print(f"{Colors.WHITE}[8]{Colors.RESET} EXIT")
     print()
 
 def getTimestamp():
@@ -258,8 +262,8 @@ def checkCard(card, site, gateway, config):
         'key': config['api_key']
     }
     
-    if PROXY:
-        params['proxy'] = PROXY
+    if config.get('proxy_enabled') and config.get('proxy'):
+        params['proxy'] = config['proxy']
     
     try:
         response = requests.get(api_url, params=params, timeout=120)
@@ -383,13 +387,25 @@ def configureSites():
         time.sleep(1)
 
 def configureProxy():
-    global PROXY
+    config = loadConfig()
     clearScreen()
     printBanner()
-    print(f"{Colors.CYAN}CURRENT PROXY: {Colors.WHITE}{PROXY if PROXY else 'NONE'}{Colors.RESET}\n")
+    
+    proxy_enabled = config.get('proxy_enabled', False)
+    proxy_value = config.get('proxy', '')
+    
+    status = f"{Colors.GREEN}ENABLED{Colors.RESET}" if proxy_enabled else f"{Colors.RED}DISABLED{Colors.RESET}"
+    
+    print(f"{Colors.CYAN}PROXY STATUS: {status}{Colors.RESET}")
+    if proxy_value:
+        print(f"{Colors.CYAN}PROXY: {Colors.WHITE}{proxy_value}{Colors.RESET}\n")
+    else:
+        print()
+    
     print(f"{Colors.WHITE}[1]{Colors.RESET} SET PROXY")
-    print(f"{Colors.WHITE}[2]{Colors.RESET} REMOVE PROXY")
-    print(f"{Colors.WHITE}[3]{Colors.RESET} BACK")
+    print(f"{Colors.WHITE}[2]{Colors.RESET} ENABLE/DISABLE PROXY")
+    print(f"{Colors.WHITE}[3]{Colors.RESET} REMOVE PROXY")
+    print(f"{Colors.WHITE}[4]{Colors.RESET} BACK")
     print()
     
     choice = input(f"{Colors.WHITE}CHOOSE: {Colors.RESET}").strip()
@@ -397,11 +413,24 @@ def configureProxy():
     if choice == '1':
         proxy = input(f"{Colors.WHITE}ENTER PROXY (http://user:pass@host:port): {Colors.RESET}").strip()
         if proxy:
-            PROXY = proxy
-            print(f"{Colors.GREEN}[+] PROXY SET{Colors.RESET}")
+            config['proxy'] = proxy
+            config['proxy_enabled'] = True
+            saveConfig(config)
+            print(f"{Colors.GREEN}[+] PROXY SET AND ENABLED{Colors.RESET}")
         time.sleep(1)
     elif choice == '2':
-        PROXY = None
+        if config.get('proxy'):
+            config['proxy_enabled'] = not config.get('proxy_enabled', False)
+            saveConfig(config)
+            status = "ENABLED" if config['proxy_enabled'] else "DISABLED"
+            print(f"{Colors.GREEN}[+] PROXY {status}{Colors.RESET}")
+        else:
+            print(f"{Colors.RED}[-] NO PROXY SET{Colors.RESET}")
+        time.sleep(1)
+    elif choice == '3':
+        config['proxy'] = ""
+        config['proxy_enabled'] = False
+        saveConfig(config)
         print(f"{Colors.GREEN}[+] PROXY REMOVED{Colors.RESET}")
         time.sleep(1)
 
@@ -667,7 +696,9 @@ def startChecker():
     print(f"{Colors.GREEN}[+] GATEWAY: {gateway.upper()}{Colors.RESET}")
     print(f"{Colors.GREEN}[+] SITE: {selectedSite}{Colors.RESET}")
     print(f"{Colors.GREEN}[+] THREADS: {DEFAULT_THREADS}{Colors.RESET}")
-    print(f"{Colors.GREEN}[+] PROXY: {PROXY if PROXY else 'NONE'}{Colors.RESET}")
+    
+    proxy_status = "ENABLED" if config.get('proxy_enabled') and config.get('proxy') else "NONE"
+    print(f"{Colors.GREEN}[+] PROXY: {proxy_status}{Colors.RESET}")
     print(f"{Colors.GREEN}[+] STARTING CHECK...{Colors.RESET}\n")
     
     checkStats['total'] = len(cards)
