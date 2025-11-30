@@ -152,7 +152,6 @@ def formatBracket(content, color):
     return f"{Colors.WHITE}[{color}{content}{Colors.RESET}{Colors.WHITE}]{Colors.RESET}"
 
 def printProgress():
-    """Print live progress counter at bottom of terminal"""
     approved = checkStats['approved'] + checkStats['charged']
     live = checkStats['ccn'] + checkStats['live']
     dead = checkStats['dead']
@@ -242,7 +241,6 @@ def logResult(card, status, code, message, ip, gateway, config, site, siteLabel)
     logLine = f"{timestamp} : {statusBracket} {formattedCard} | {resultMessage} | {formattedIp} | {gatewayName} | {siteLabel}"
     logLineClean = f"{timestamp} : [{statusChar}] {card} | {code.upper()} - {message.upper()} | {ip} | {gatewayName} | {siteLabel}"
     
-    # Clear progress line and print result
     print(f"\r{' ' * 100}\r{logLine}")
     
     checkStats['checked'] += 1
@@ -268,7 +266,6 @@ def logResult(card, status, code, message, ip, gateway, config, site, siteLabel)
     elif status == 'ERROR':
         checkStats['invalid'] += 1
     
-    # Reprint progress after result
     printProgress()
 
 def checkCard(card, site, gateway, config, siteLabel):
@@ -723,61 +720,6 @@ def selectSiteMode(gateway):
     else:
         return None, None
 
-def selectSiteMode(gateway):
-    clearScreen()
-    printBanner()
-    
-    sites = loadSites(gateway)
-    builtin_key = f"SIN-{gateway.upper()}"
-    
-    print(f"{Colors.CYAN}SELECT SITE MODE FOR {gateway.upper()}:{Colors.RESET}\n")
-    print(f"{Colors.WHITE}[1]{Colors.RESET} USE BUILT-IN SITES {Colors.GREEN}({builtin_key} - Random){Colors.RESET}")
-    
-    if sites:
-        print(f"{Colors.WHITE}[2]{Colors.RESET} USE CUSTOM SITES {Colors.CYAN}({len(sites)} sites - Random){Colors.RESET}")
-    else:
-        print(f"{Colors.GRAY}[2] USE CUSTOM SITES (No custom sites configured){Colors.RESET}")
-    
-    print()
-    choice = input(f"{Colors.WHITE}CHOOSE: {Colors.RESET}").strip()
-    
-    if choice == '1':
-        return builtin_key, builtin_key
-    elif choice == '2':
-        if not sites:
-            print(f"{Colors.RED}[-] NO CUSTOM SITES CONFIGURED. PLEASE ADD SITES FIRST.{Colors.RESET}")
-            time.sleep(2)
-            return None, None
-        selected_site = random.choice(sites)
-        site_index = sites.index(selected_site) + 1
-        site_label = f"SITE {site_index}"
-        return selected_site, site_label
-    else:
-        return None, None
-
-def selectCustomSite(gateway, sites):
-    clearScreen()
-    printBanner()
-    
-    print(f"{Colors.CYAN}SELECT CUSTOM SITE FOR {gateway.upper()}:{Colors.RESET}\n")
-    
-    for idx, site in enumerate(sites, 1):
-        print(f"{Colors.WHITE}[{idx}]{Colors.RESET} {site}")
-    
-    print()
-    choice = input(f"{Colors.WHITE}CHOOSE SITE NUMBER: {Colors.RESET}").strip()
-    
-    try:
-        choice_num = int(choice)
-        if 1 <= choice_num <= len(sites):
-            selected_site = sites[choice_num - 1]
-            site_label = f"SITE {choice_num}"
-            return selected_site, site_label
-    except:
-        pass
-    
-    return None, None
-
 def startChecker():
     config = loadConfig()
     
@@ -793,13 +735,12 @@ def startChecker():
         time.sleep(2)
         return
     
-    sites = loadSites(gateway)
-    if not sites:
-        print(f"{Colors.RED}[-] NO SITES CONFIGURED FOR {gateway.upper()}{Colors.RESET}")
+    selectedSite, siteLabel = selectSiteMode(gateway)
+    
+    if not selectedSite:
+        print(f"{Colors.RED}[-] INVALID SITE SELECTION{Colors.RESET}")
         time.sleep(2)
         return
-    
-    selectedSite = sites[0]
     
     resetStats()
     
@@ -838,11 +779,9 @@ def startChecker():
     checkStats['total'] = len(cards)
     time.sleep(1)
     
-    checkStats['total'] = len(cards)
-    
     try:
         with ThreadPoolExecutor(max_workers=DEFAULT_THREADS) as executor:
-            futures = [executor.submit(checkCard, card, selectedSite, gateway, config, 1) for card in cards]
+            futures = [executor.submit(checkCard, card, selectedSite, gateway, config, siteLabel) for card in cards]
             
             for future in as_completed(futures):
                 try:
