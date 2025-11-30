@@ -718,6 +718,8 @@ def startChecker():
     print(f"{Colors.GREEN}[+] PROXY: {proxy_status}{Colors.RESET}")
     print(f"{Colors.GREEN}[+] STARTING CHECK...{Colors.RESET}\n")
     
+    time.sleep(1)
+    
     checkStats['total'] = len(cards)
     
     try:
