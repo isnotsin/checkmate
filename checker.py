@@ -97,6 +97,14 @@ def saveSites(gateway, sites):
         for site in sites:
             f.write(site + '\n')
 
+def extractDomain(url):
+    import re
+    url = url.strip()
+    url = re.sub(r'^https?://', '', url, flags=re.IGNORECASE)
+    url = url.split('/')[0]
+    url = url.split('?')[0]
+    return url
+
 def clearScreen():
     os.system('clear' if os.name != 'nt' else 'cls')
 
@@ -233,6 +241,7 @@ def logResult(card, status, code, message, ip, gateway, config, site, siteLabel)
     logLine = f"{timestamp} : {statusBracket} {formattedCard} | {resultMessage} | {formattedIp} | {gatewayName} | {siteLabel}"
     logLineClean = f"{timestamp} : [{statusChar}] {card} | {code.upper()} - {message.upper()} | {ip} | {gatewayName} | {siteLabel}"
     
+    # Clear progress line and print result
     print(f"\r{' ' * 100}\r{logLine}")
     
     checkStats['checked'] += 1
@@ -258,6 +267,7 @@ def logResult(card, status, code, message, ip, gateway, config, site, siteLabel)
     elif status == 'ERROR':
         checkStats['invalid'] += 1
     
+    # Reprint progress after result
     printProgress()
 
 def checkCard(card, site, gateway, config, siteLabel):
@@ -383,21 +393,37 @@ def configureSites():
     
     sites = loadSites(gateway)
     showSites(gateway)
-    print(f"{Colors.CYAN}[1]{Colors.RESET} ADD SITE")
-    print(f"{Colors.CYAN}[2]{Colors.RESET} REMOVE SITE")
-    print(f"{Colors.CYAN}[3]{Colors.RESET} BACK")
+    print(f"{Colors.CYAN}[1]{Colors.RESET} ADD SITE MANUALLY")
+    print(f"{Colors.CYAN}[2]{Colors.RESET} ADD SITES FROM TXT FILE")
+    print(f"{Colors.CYAN}[3]{Colors.RESET} REMOVE SITE")
+    print(f"{Colors.CYAN}[4]{Colors.RESET} BACK")
     print()
     
     action = input(f"{Colors.WHITE}CHOOSE: {Colors.RESET}").strip()
     
     if action == '1':
-        site = input(f"{Colors.WHITE}ENTER SITE: {Colors.RESET}").strip()
+        site = input(f"{Colors.WHITE}ENTER SITE URL: {Colors.RESET}").strip()
         if site:
-            sites.append(site)
+            clean_site = extractDomain(site)
+            sites.append(clean_site)
             saveSites(gateway, sites)
-            print(f"{Colors.GREEN}[+] SITE ADDED{Colors.RESET}")
+            print(f"{Colors.GREEN}[+] SITE ADDED: {clean_site}{Colors.RESET}")
         time.sleep(1)
     elif action == '2':
+        filepath = input(f"{Colors.WHITE}ENTER TXT FILE PATH: {Colors.RESET}").strip()
+        try:
+            with open(filepath, 'r') as f:
+                new_sites = [extractDomain(line.strip()) for line in f if line.strip()]
+            sites.extend(new_sites)
+            sites = list(set(sites))
+            saveSites(gateway, sites)
+            print(f"{Colors.GREEN}[+] ADDED {len(new_sites)} SITES{Colors.RESET}")
+        except FileNotFoundError:
+            print(f"{Colors.RED}[-] FILE NOT FOUND{Colors.RESET}")
+        except Exception as e:
+            print(f"{Colors.RED}[-] ERROR: {e}{Colors.RESET}")
+        time.sleep(1)
+    elif action == '3':
         if not sites:
             print(f"{Colors.RED}[-] NO SITES TO REMOVE{Colors.RESET}")
             time.sleep(1)
@@ -664,32 +690,52 @@ def selectGateway():
     
     return gateway_map.get(choice)
 
-def selectSite(gateway):
-    """Let user choose between built-in or custom sites"""
-    sites = loadSites(gateway)
-    builtin_key = f"SIN-{gateway.upper()}"
-    
+def selectSiteMode(gateway):
     clearScreen()
     printBanner()
     
-    print(f"{Colors.CYAN}SELECT SITE FOR {gateway.upper()}:{Colors.RESET}\n")
-    print(f"{Colors.WHITE}[1]{Colors.RESET} {builtin_key} {Colors.GREEN}(Built-in - Random){Colors.RESET}")
+    sites = loadSites(gateway)
+    builtin_key = f"SIN-{gateway.upper()}"
+    
+    print(f"{Colors.CYAN}SELECT SITE MODE FOR {gateway.upper()}:{Colors.RESET}\n")
+    print(f"{Colors.WHITE}[1]{Colors.RESET} USE BUILT-IN SITES {Colors.GREEN}({builtin_key} - Random){Colors.RESET}")
     
     if sites:
-        print(f"\n{Colors.WHITE}CUSTOM SITES:{Colors.RESET}")
-        for idx, site in enumerate(sites, 2):
-            print(f"{Colors.WHITE}[{idx}]{Colors.RESET} {site}")
+        print(f"{Colors.WHITE}[2]{Colors.RESET} USE CUSTOM SITES {Colors.CYAN}({len(sites)} sites - Random){Colors.RESET}")
+    else:
+        print(f"{Colors.GRAY}[2] USE CUSTOM SITES (No custom sites configured){Colors.RESET}")
     
     print()
     choice = input(f"{Colors.WHITE}CHOOSE: {Colors.RESET}").strip()
     
+    if choice == '1':
+        return builtin_key, builtin_key
+    elif choice == '2' and sites:
+        selected_site = random.choice(sites)
+        site_index = sites.index(selected_site) + 1
+        site_label = f"SITE {site_index}"
+        return selected_site, site_label
+    else:
+        return None, None
+
+def selectCustomSite(gateway, sites):
+    clearScreen()
+    printBanner()
+    
+    print(f"{Colors.CYAN}SELECT CUSTOM SITE FOR {gateway.upper()}:{Colors.RESET}\n")
+    
+    for idx, site in enumerate(sites, 1):
+        print(f"{Colors.WHITE}[{idx}]{Colors.RESET} {site}")
+    
+    print()
+    choice = input(f"{Colors.WHITE}CHOOSE SITE NUMBER: {Colors.RESET}").strip()
+    
     try:
         choice_num = int(choice)
-        if choice_num == 1:
-            return builtin_key, 0
-        elif choice_num > 1 and sites and choice_num <= len(sites) + 1:
-            selected_site = sites[choice_num - 2]
-            return selected_site, choice_num - 1
+        if 1 <= choice_num <= len(sites):
+            selected_site = sites[choice_num - 1]
+            site_label = f"SITE {choice_num}"
+            return selected_site, site_label
     except:
         pass
     
