@@ -712,7 +712,6 @@ def startChecker():
     
     print(f"{Colors.GREEN}[+] LOADED {len(cards)} CARDS{Colors.RESET}")
     print(f"{Colors.GREEN}[+] GATEWAY: {gateway.upper()}{Colors.RESET}")
-    print(f"{Colors.GREEN}[+] SITE: {selectedSite}{Colors.RESET}")
     print(f"{Colors.GREEN}[+] THREADS: {DEFAULT_THREADS}{Colors.RESET}")
     
     proxy_status = "ENABLED" if config.get('proxy_enabled') and config.get('proxy') else "NONE"
@@ -723,7 +722,7 @@ def startChecker():
     
     try:
         with ThreadPoolExecutor(max_workers=DEFAULT_THREADS) as executor:
-            futures = [executor.submit(checkCard, card, selectedSite, gateway, config) for card in cards]
+            futures = [executor.submit(checkCard, card, selectedSite, gateway, config, 1) for card in cards]
             
             for future in as_completed(futures):
                 try:
