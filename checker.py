@@ -209,7 +209,7 @@ def saveToFile(cards, status, timestamp):
     except Exception as e:
         print(f"\n{Colors.RED}[-] ERROR SAVING FILE: {e}{Colors.RESET}")
 
-def logResult(card, status, code, message, ip, gateway, config, site):
+def logResult(card, status, code, message, ip, gateway, config, site, siteLabel):
     timestamp = getTimestamp()
     
     statusMap = {
@@ -230,8 +230,8 @@ def logResult(card, status, code, message, ip, gateway, config, site):
     resultMessage = f"{statusColor}{code.upper()} - {message.upper()}{Colors.RESET}"
     gatewayName = gateway.upper()
     
-    logLine = f"{timestamp} : {statusBracket} {formattedCard} | {resultMessage} | {formattedIp} | {gatewayName} | {site}"
-    logLineClean = f"{timestamp} : [{statusChar}] {card} | {code.upper()} - {message.upper()} | {ip} | {gatewayName} | {site}"
+    logLine = f"{timestamp} : {statusBracket} {formattedCard} | {resultMessage} | {formattedIp} | {gatewayName} | {siteLabel}"
+    logLineClean = f"{timestamp} : [{statusChar}] {card} | {code.upper()} - {message.upper()} | {ip} | {gatewayName} | {siteLabel}"
     
     # Clear progress line and print result
     print(f"\r{' ' * 100}\r{logLine}")
@@ -262,10 +262,12 @@ def logResult(card, status, code, message, ip, gateway, config, site):
     # Reprint progress after result
     printProgress()
 
-def checkCard(card, site, gateway, config):
+def checkCard(card, site, gateway, config, siteIndex):
     card = card.strip()
+    siteLabel = f"SITE {siteIndex}"
+    
     if not card or '|' not in card:
-        logResult(card, 'ERROR', 'INVALID', 'INVALID CARD FORMAT', 'N/A', gateway, config, site)
+        logResult(card, 'ERROR', 'INVALID', 'INVALID CARD FORMAT', 'N/A', gateway, config, site, siteLabel)
         return
     
     api_url = f"{config['api_base']}/{gateway}"
@@ -295,16 +297,15 @@ def checkCard(card, site, gateway, config):
         code = data.get('code', 'unknown')
         message = data.get('message', 'No message')
         ip = data.get('site_info', {}).get('proxy_ip', 'N/A')
-        actual_site = data.get('site_info', {}).get('site', site)
         
-        logResult(card, status, code, message, ip, gateway, config, actual_site)
+        logResult(card, status, code, message, ip, gateway, config, site, siteLabel)
         
     except requests.exceptions.Timeout:
-        logResult(card, 'ERROR', 'TIMEOUT', 'REQUEST TIMEOUT', 'N/A', gateway, config, site)
+        logResult(card, 'ERROR', 'TIMEOUT', 'REQUEST TIMEOUT', 'N/A', gateway, config, site, siteLabel)
     except requests.exceptions.RequestException as e:
-        logResult(card, 'ERROR', 'CONNECTION', 'CONNECTION ERROR', 'N/A', gateway, config, site)
+        logResult(card, 'ERROR', 'CONNECTION', 'CONNECTION ERROR', 'N/A', gateway, config, site, siteLabel)
     except Exception as e:
-        logResult(card, 'ERROR', 'EXCEPTION', str(e).upper(), 'N/A', gateway, config, site)
+        logResult(card, 'ERROR', 'EXCEPTION', str(e).upper(), 'N/A', gateway, config, site, siteLabel)
 
 def loadCards(files):
     cards = []
@@ -718,6 +719,7 @@ def startChecker():
     print(f"{Colors.GREEN}[+] PROXY: {proxy_status}{Colors.RESET}")
     print(f"{Colors.GREEN}[+] STARTING CHECK...{Colors.RESET}\n")
     
+    checkStats['total'] = len(cards)
     time.sleep(1)
     
     checkStats['total'] = len(cards)
