@@ -711,7 +711,11 @@ def selectSiteMode(gateway):
     
     if choice == '1':
         return builtin_key, builtin_key
-    elif choice == '2' and sites:
+    elif choice == '2':
+        if not sites:
+            print(f"{Colors.RED}[-] NO CUSTOM SITES CONFIGURED. PLEASE ADD SITES FIRST.{Colors.RESET}")
+            time.sleep(2)
+            return None, None
         selected_site = random.choice(sites)
         site_index = sites.index(selected_site) + 1
         site_label = f"SITE {site_index}"
