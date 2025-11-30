@@ -4,7 +4,7 @@ import os
 import sys
 import subprocess
 
-REPO_URL = "https://github.com/yourusername/card-checker.git"
+REPO_URL = "https://github.com/isnotsin/checkmate.git"
 CHECKER_SCRIPT = "checker.py"
 
 class Colors:
@@ -41,8 +41,8 @@ def installGit():
 def cloneRepo():
     print(f"{Colors.CYAN}[*] Downloading checker...{Colors.RESET}")
     try:
-        if os.path.exists('card-checker'):
-            subprocess.check_call(['rm', '-rf', 'card-checker'])
+        if os.path.exists('checkmate'):
+            subprocess.check_call(['rm', '-rf', 'checkmate'])
         
         subprocess.check_call(['git', 'clone', REPO_URL])
         print(f"{Colors.GREEN}[✓] Downloaded successfully{Colors.RESET}")
@@ -54,7 +54,7 @@ def cloneRepo():
 def updateRepo():
     print(f"{Colors.CYAN}[*] Updating checker...{Colors.RESET}")
     try:
-        os.chdir('card-checker')
+        os.chdir('checkmate')
         subprocess.check_call(['git', 'pull'])
         os.chdir('..')
         print(f"{Colors.GREEN}[✓] Updated successfully{Colors.RESET}")
@@ -64,11 +64,11 @@ def updateRepo():
         return False
 
 def runChecker():
-    if not os.path.exists('card-checker'):
+    if not os.path.exists('checkmate'):
         print(f"{Colors.RED}[✗] Checker not installed{Colors.RESET}")
         return
     
-    os.chdir('card-checker')
+    os.chdir('checkmate')
     subprocess.call([sys.executable, CHECKER_SCRIPT])
     os.chdir('..')
 
@@ -93,7 +93,7 @@ def main():
             print(f"\n{Colors.GREEN}[✓] Installation complete!{Colors.RESET}")
             print(f"{Colors.CYAN}[*] Run with: python app.py -> [3] Run Checker{Colors.RESET}")
     elif choice == '2':
-        if os.path.exists('card-checker'):
+        if os.path.exists('checkmate'):
             updateRepo()
         else:
             print(f"{Colors.RED}[✗] Checker not installed. Install first.{Colors.RESET}")

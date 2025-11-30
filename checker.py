@@ -79,9 +79,7 @@ def loadConfig():
         "api_key": "",
         "api_base": "https://ey-pi-ay.onrender.com",
         "bot_token": "",
-        "chat_id": "",
-        "proxy": "",
-        "proxy_enabled": False
+        "chat_id": ""
     }
 
 def saveConfig(config):
@@ -119,13 +117,12 @@ def printMenu():
     
     key_status = f"{Colors.GREEN}✓ Set{Colors.RESET}" if config.get('api_key') else f"{Colors.RED}✗ Not Set{Colors.RESET}"
     forwarder_status = f"{Colors.GREEN}✓ Enabled{Colors.RESET}" if config.get('bot_token') and config.get('chat_id') else f"{Colors.GRAY}✗ Disabled{Colors.RESET}"
-    proxy_status = f"{Colors.GREEN}✓ Enabled{Colors.RESET}" if config.get('proxy_enabled') else f"{Colors.GRAY}✗ Disabled{Colors.RESET}"
     
     print(f"{Colors.WHITE}[1]{Colors.RESET} START CHECKER")
     print(f"{Colors.WHITE}[2]{Colors.RESET} CONFIGURE API KEY {key_status}")
     print(f"{Colors.WHITE}[3]{Colors.RESET} CONFIGURE SERVER")
     print(f"{Colors.WHITE}[4]{Colors.RESET} CONFIGURE SITES")
-    print(f"{Colors.WHITE}[5]{Colors.RESET} CONFIGURE PROXY {proxy_status}")
+    print(f"{Colors.WHITE}[5]{Colors.RESET} CONFIGURE PROXY")
     print(f"{Colors.WHITE}[6]{Colors.RESET} CONFIGURE FORWARDER {forwarder_status}")
     print(f"{Colors.WHITE}[7]{Colors.RESET} EXIT")
     print()
@@ -261,8 +258,8 @@ def checkCard(card, site, gateway, config):
         'key': config['api_key']
     }
     
-    if config.get('proxy_enabled') and config.get('proxy'):
-        params['proxy'] = config['proxy']
+    if PROXY:
+        params['proxy'] = PROXY
     
     try:
         response = requests.get(api_url, params=params, timeout=120)
@@ -295,13 +292,41 @@ def loadCards(files):
     for filePath in files:
         try:
             with open(filePath, 'r') as f:
-                cards.extend([line.strip() for line in f if line.strip()])
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    card = extractCard(line)
+                    if card:
+                        cards.append(card)
+                        
             print(f"{Colors.GREEN}[+] LOADED {filePath}{Colors.RESET}")
         except FileNotFoundError:
             print(f"{Colors.RED}[-] FILE NOT FOUND: {filePath}{Colors.RESET}")
         except Exception as e:
             print(f"{Colors.RED}[-] ERROR READING {filePath}: {e}{Colors.RESET}")
     return cards
+
+def extractCard(line):
+    import re
+    
+    pattern = r'(\d{13,19})\D*(\d{1,2})\D*(\d{2,4})\D*(\d{3,4})'
+    
+    match = re.search(pattern, line)
+    if match:
+        cc = match.group(1)
+        mm = match.group(2).zfill(2)
+        yy = match.group(3)
+        cvc = match.group(4)
+        
+        if len(yy) == 4:
+            yy = yy[2:]
+        
+        if len(cc) >= 13 and len(cc) <= 19 and int(mm) >= 1 and int(mm) <= 12:
+            return f"{cc}|{mm}|{yy}|{cvc}"
+    
+    return None
 
 def showSites(gateway):
     clearScreen()
@@ -358,25 +383,13 @@ def configureSites():
         time.sleep(1)
 
 def configureProxy():
-    config = loadConfig()
+    global PROXY
     clearScreen()
     printBanner()
-    
-    proxy_enabled = config.get('proxy_enabled', False)
-    proxy_value = config.get('proxy', '')
-    
-    status = f"{Colors.GREEN}ENABLED{Colors.RESET}" if proxy_enabled else f"{Colors.RED}DISABLED{Colors.RESET}"
-    
-    print(f"{Colors.CYAN}PROXY STATUS: {status}{Colors.RESET}")
-    if proxy_value:
-        print(f"{Colors.CYAN}PROXY: {Colors.WHITE}{proxy_value}{Colors.RESET}\n")
-    else:
-        print()
-    
+    print(f"{Colors.CYAN}CURRENT PROXY: {Colors.WHITE}{PROXY if PROXY else 'NONE'}{Colors.RESET}\n")
     print(f"{Colors.WHITE}[1]{Colors.RESET} SET PROXY")
-    print(f"{Colors.WHITE}[2]{Colors.RESET} ENABLE/DISABLE PROXY")
-    print(f"{Colors.WHITE}[3]{Colors.RESET} REMOVE PROXY")
-    print(f"{Colors.WHITE}[4]{Colors.RESET} BACK")
+    print(f"{Colors.WHITE}[2]{Colors.RESET} REMOVE PROXY")
+    print(f"{Colors.WHITE}[3]{Colors.RESET} BACK")
     print()
     
     choice = input(f"{Colors.WHITE}CHOOSE: {Colors.RESET}").strip()
@@ -384,24 +397,11 @@ def configureProxy():
     if choice == '1':
         proxy = input(f"{Colors.WHITE}ENTER PROXY (http://user:pass@host:port): {Colors.RESET}").strip()
         if proxy:
-            config['proxy'] = proxy
-            config['proxy_enabled'] = True
-            saveConfig(config)
-            print(f"{Colors.GREEN}[+] PROXY SET AND ENABLED{Colors.RESET}")
+            PROXY = proxy
+            print(f"{Colors.GREEN}[+] PROXY SET{Colors.RESET}")
         time.sleep(1)
     elif choice == '2':
-        if config.get('proxy'):
-            config['proxy_enabled'] = not config.get('proxy_enabled', False)
-            saveConfig(config)
-            status = "ENABLED" if config['proxy_enabled'] else "DISABLED"
-            print(f"{Colors.GREEN}[+] PROXY {status}{Colors.RESET}")
-        else:
-            print(f"{Colors.RED}[-] NO PROXY SET{Colors.RESET}")
-        time.sleep(1)
-    elif choice == '3':
-        config['proxy'] = ""
-        config['proxy_enabled'] = False
-        saveConfig(config)
+        PROXY = None
         print(f"{Colors.GREEN}[+] PROXY REMOVED{Colors.RESET}")
         time.sleep(1)
 
@@ -523,6 +523,37 @@ def configureForwarder():
         print(f"{Colors.GREEN}[+] FORWARDER REMOVED{Colors.RESET}")
         time.sleep(1)
 
+def showBuyMenu():
+    clearScreen()
+    printBanner()
+    
+    print(f"{Colors.CYAN}╔════════════════════════════════════════╗")
+    print(f"║         API KEY PRICING               ║")
+    print(f"╚════════════════════════════════════════╝{Colors.RESET}\n")
+    
+    print(f"{Colors.WHITE}PUBLIC API KEYS:{Colors.RESET}")
+    print(f"{Colors.GREEN}  💵 $5  → 7 DAYS{Colors.RESET}")
+    print(f"{Colors.GREEN}  💵 $10 → 15 DAYS{Colors.RESET}")
+    print(f"{Colors.GREEN}  💵 $15 → 30 DAYS{Colors.RESET}\n")
+    
+    print(f"{Colors.CYAN}PRIVATE API: $20/MONTH{Colors.RESET}")
+    print(f"{Colors.WHITE}Exclusive Features:{Colors.RESET}")
+    print(f"  {Colors.GREEN}✓{Colors.RESET} Dedicated server (faster response)")
+    print(f"  {Colors.GREEN}✓{Colors.RESET} Not listed on status.isnotsin.com")
+    print(f"  {Colors.GREEN}✓{Colors.RESET} Priority support & updates")
+    print(f"  {Colors.GREEN}✓{Colors.RESET} All gateways: Stripe, PPCP, B3")
+    print(f"  {Colors.GREEN}✓{Colors.RESET} BIN checker included")
+    print(f"  {Colors.GREEN}✓{Colors.RESET} Proxy support")
+    print(f"  {Colors.GREEN}✓{Colors.RESET} Perfect for building your own tools")
+    print(f"  {Colors.GREEN}✓{Colors.RESET} New gateways added regularly\n")
+    
+    print(f"{Colors.CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Colors.RESET}")
+    print(f"{Colors.WHITE}Contact: {Colors.CYAN}@isnotsin{Colors.RESET}")
+    print(f"{Colors.WHITE}Payment: {Colors.CYAN}Crypto/PayPal{Colors.RESET}")
+    print(f"{Colors.CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Colors.RESET}\n")
+    
+    input(f"{Colors.WHITE}Press ENTER to return...{Colors.RESET}")
+
 def resetStats():
     checkStats['total'] = 0
     checkStats['checked'] = 0
@@ -636,9 +667,7 @@ def startChecker():
     print(f"{Colors.GREEN}[+] GATEWAY: {gateway.upper()}{Colors.RESET}")
     print(f"{Colors.GREEN}[+] SITE: {selectedSite}{Colors.RESET}")
     print(f"{Colors.GREEN}[+] THREADS: {DEFAULT_THREADS}{Colors.RESET}")
-    
-    proxy_status = "ENABLED" if config.get('proxy_enabled') and config.get('proxy') else "NONE"
-    print(f"{Colors.GREEN}[+] PROXY: {proxy_status}{Colors.RESET}")
+    print(f"{Colors.GREEN}[+] PROXY: {PROXY if PROXY else 'NONE'}{Colors.RESET}")
     print(f"{Colors.GREEN}[+] STARTING CHECK...{Colors.RESET}\n")
     
     checkStats['total'] = len(cards)
@@ -679,6 +708,8 @@ def main():
         elif choice == '6':
             configureForwarder()
         elif choice == '7':
+            showBuyMenu()
+        elif choice == '8':
             clearScreen()
             print(f"{Colors.CYAN}GOODBYE!{Colors.RESET}")
             break
