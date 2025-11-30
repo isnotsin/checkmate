@@ -13,6 +13,7 @@ CONFIG_FILE = "checker_config.json"
 SITES_DIR = "sites"
 RESULTS_DIR = "results"
 DEFAULT_THREADS = 5
+VERSION = "v0.1"
 
 checkStats = {
     'total': 0,
@@ -103,7 +104,7 @@ def printBanner():
     banner = f"""
 {Colors.CYAN}░▄▀▀░█▄█▒██▀░▄▀▀░█▄▀░█▄▒▄█▒▄▀▄░▀█▀▒██▀
 ░▀▄▄▒█▒█░█▄▄░▀▄▄░█▒█░█▒▀▒█░█▀█░▒█▒░█▄▄{Colors.RESET}
-{Colors.WHITE}         @isnotsin{Colors.RESET}
+{Colors.WHITE}         @isnotsin - {VERSION}{Colors.RESET}
 """
     print(banner)
 
@@ -140,6 +141,22 @@ def formatIp(ip):
 
 def formatBracket(content, color):
     return f"{Colors.WHITE}[{color}{content}{Colors.RESET}{Colors.WHITE}]{Colors.RESET}"
+
+def printProgress():
+    """Print live progress counter at bottom of terminal"""
+    approved = checkStats['approved'] + checkStats['charged']
+    live = checkStats['ccn'] + checkStats['live']
+    dead = checkStats['dead']
+    invalid = checkStats['invalid']
+    
+    progress = f"{Colors.CYAN}PROGRESS: {checkStats['checked']}/{checkStats['total']}{Colors.RESET}"
+    s_count = f"{Colors.GREEN}S: {approved}{Colors.RESET}"
+    l_count = f"{Colors.ORANGE}L: {live}{Colors.RESET}"
+    d_count = f"{Colors.RED}D: {dead}{Colors.RESET}"
+    i_count = f"{Colors.GRAY}I: {invalid}{Colors.RESET}"
+    
+    status_line = f"{progress} | {s_count} | {l_count} | {d_count} | {i_count}"
+    print(f"\r{status_line}", end='', flush=True)
 
 def sendTelegramNotification(config, card, status, code, message):
     if not config.get('bot_token') or not config.get('chat_id'):
@@ -188,9 +205,9 @@ def saveToFile(cards, status, timestamp):
         with open(filename, 'w') as f:
             for logLine in cards:
                 f.write(logLine + '\n')
-        print(f"{Colors.GREEN}[+] SAVED TO {filename}{Colors.RESET}")
+        print(f"\n{Colors.GREEN}[+] SAVED TO {filename}{Colors.RESET}")
     except Exception as e:
-        print(f"{Colors.RED}[-] ERROR SAVING FILE: {e}{Colors.RESET}")
+        print(f"\n{Colors.RED}[-] ERROR SAVING FILE: {e}{Colors.RESET}")
 
 def logResult(card, status, code, message, ip, gateway, config, site):
     timestamp = getTimestamp()
@@ -213,12 +230,11 @@ def logResult(card, status, code, message, ip, gateway, config, site):
     resultMessage = f"{statusColor}{code.upper()} - {message.upper()}{Colors.RESET}"
     gatewayName = gateway.upper()
     
-    progress = f"{Colors.CYAN}[{checkStats['checked']}/{checkStats['total']}]{Colors.RESET}"
-    
-    logLine = f"{timestamp} : {progress} {statusBracket} {formattedCard} | {resultMessage} | {formattedIp} | {gatewayName} | {site}"
+    logLine = f"{timestamp} : {statusBracket} {formattedCard} | {resultMessage} | {formattedIp} | {gatewayName} | {site}"
     logLineClean = f"{timestamp} : [{statusChar}] {card} | {code.upper()} - {message.upper()} | {ip} | {gatewayName} | {site}"
     
-    print(logLine)
+    # Clear progress line and print result
+    print(f"\r{' ' * 100}\r{logLine}")
     
     checkStats['checked'] += 1
     
@@ -242,6 +258,9 @@ def logResult(card, status, code, message, ip, gateway, config, site):
         checkStats['dead'] += 1
     elif status == 'ERROR':
         checkStats['invalid'] += 1
+    
+    # Reprint progress after result
+    printProgress()
 
 def checkCard(card, site, gateway, config):
     card = card.strip()
@@ -264,7 +283,7 @@ def checkCard(card, site, gateway, config):
         response = requests.get(api_url, params=params, timeout=120)
         
         if response.status_code == 401:
-            print(f"{Colors.RED}[!] API KEY EXPIRED OR INVALID{Colors.RESET}")
+            print(f"\n{Colors.RED}[!] API KEY EXPIRED OR INVALID{Colors.RESET}")
             if os.path.exists(CONFIG_FILE):
                 config['api_key'] = ""
                 saveConfig(config)
@@ -597,7 +616,7 @@ def resetStats():
     checkStats['chargedCards'] = []
 
 def showSummary():
-    print(f"\n{Colors.CYAN}{'='*50}{Colors.RESET}")
+    print(f"\n\n{Colors.CYAN}{'='*50}{Colors.RESET}")
     print(f"{Colors.CYAN}CHECK SUMMARY{Colors.RESET}")
     print(f"{Colors.CYAN}{'='*50}{Colors.RESET}")
     print(f"{Colors.WHITE}TOTAL CHECKED:{Colors.RESET} {checkStats['total']}")
