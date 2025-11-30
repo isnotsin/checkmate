@@ -233,7 +233,6 @@ def logResult(card, status, code, message, ip, gateway, config, site, siteLabel)
     logLine = f"{timestamp} : {statusBracket} {formattedCard} | {resultMessage} | {formattedIp} | {gatewayName} | {siteLabel}"
     logLineClean = f"{timestamp} : [{statusChar}] {card} | {code.upper()} - {message.upper()} | {ip} | {gatewayName} | {siteLabel}"
     
-    # Clear progress line and print result
     print(f"\r{' ' * 100}\r{logLine}")
     
     checkStats['checked'] += 1
@@ -259,12 +258,10 @@ def logResult(card, status, code, message, ip, gateway, config, site, siteLabel)
     elif status == 'ERROR':
         checkStats['invalid'] += 1
     
-    # Reprint progress after result
     printProgress()
 
-def checkCard(card, site, gateway, config, siteIndex):
+def checkCard(card, site, gateway, config, siteLabel):
     card = card.strip()
-    siteLabel = f"SITE {siteIndex}"
     
     if not card or '|' not in card:
         logResult(card, 'ERROR', 'INVALID', 'INVALID CARD FORMAT', 'N/A', gateway, config, site, siteLabel)
@@ -352,11 +349,16 @@ def showSites(gateway):
     clearScreen()
     printBanner()
     sites = loadSites(gateway)
+    builtin_key = f"SIN-{gateway.upper()}"
+    
     print(f"{Colors.CYAN}SITES FOR {gateway.upper()}: (sites/{gateway}.txt){Colors.RESET}\n")
     
+    print(f"{Colors.GREEN}[BUILT-IN]{Colors.RESET} {builtin_key} - Random site from server\n")
+    
     if not sites:
-        print(f"{Colors.GRAY}No sites configured. Using SIN-{gateway.upper()} (built-in sites){Colors.RESET}\n")
+        print(f"{Colors.GRAY}No custom sites configured.{Colors.RESET}\n")
     else:
+        print(f"{Colors.WHITE}CUSTOM SITES:{Colors.RESET}")
         for idx, site in enumerate(sites, 1):
             print(f"{Colors.WHITE}[{idx}]{Colors.RESET} {site}")
         print()
@@ -662,6 +664,37 @@ def selectGateway():
     
     return gateway_map.get(choice)
 
+def selectSite(gateway):
+    """Let user choose between built-in or custom sites"""
+    sites = loadSites(gateway)
+    builtin_key = f"SIN-{gateway.upper()}"
+    
+    clearScreen()
+    printBanner()
+    
+    print(f"{Colors.CYAN}SELECT SITE FOR {gateway.upper()}:{Colors.RESET}\n")
+    print(f"{Colors.WHITE}[1]{Colors.RESET} {builtin_key} {Colors.GREEN}(Built-in - Random){Colors.RESET}")
+    
+    if sites:
+        print(f"\n{Colors.WHITE}CUSTOM SITES:{Colors.RESET}")
+        for idx, site in enumerate(sites, 2):
+            print(f"{Colors.WHITE}[{idx}]{Colors.RESET} {site}")
+    
+    print()
+    choice = input(f"{Colors.WHITE}CHOOSE: {Colors.RESET}").strip()
+    
+    try:
+        choice_num = int(choice)
+        if choice_num == 1:
+            return builtin_key, 0
+        elif choice_num > 1 and sites and choice_num <= len(sites) + 1:
+            selected_site = sites[choice_num - 2]
+            return selected_site, choice_num - 1
+    except:
+        pass
+    
+    return None, None
+
 def startChecker():
     config = loadConfig()
     
@@ -774,4 +807,4 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         clearScreen()
-        print(f"\n{Colors.CYAN}GOODBYE!{Colors.RESET}")
+        print(f"\n{Colors.CYAN}GOODBYE!{Colors.RESET}"
