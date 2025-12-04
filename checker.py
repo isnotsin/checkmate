@@ -14,7 +14,7 @@ CONFIG_FILE = "checker_config.json"
 SITES_DIR = "sites"
 RESULTS_DIR = "results"
 DEFAULT_THREADS = 5
-VERSION = "v0.1"
+VERSION = "v0.2"
 
 checkStats = {
     'total': 0,
@@ -45,7 +45,7 @@ def initDirectories():
     os.makedirs(SITES_DIR, exist_ok=True)
     os.makedirs(RESULTS_DIR, exist_ok=True)
     
-    for gateway in ['stripe', 'ppcp', 'b3']:
+    for gateway in ['stripe', 'stripe_charge', 'ppcp', 'b3', 'b3charge']:
         filepath = os.path.join(SITES_DIR, f"{gateway}.txt")
         if not os.path.exists(filepath):
             with open(filepath, 'w') as f:
@@ -375,15 +375,23 @@ def configureSites():
     clearScreen()
     printBanner()
     print(f"{Colors.CYAN}SELECT GATEWAY TO CONFIGURE:{Colors.RESET}\n")
-    print(f"{Colors.WHITE}[1]{Colors.RESET} STRIPE")
-    print(f"{Colors.WHITE}[2]{Colors.RESET} PPCP")
-    print(f"{Colors.WHITE}[3]{Colors.RESET} B3")
-    print(f"{Colors.WHITE}[4]{Colors.RESET} BACK")
+    print(f"{Colors.WHITE}[1]{Colors.RESET} STRIPE AUTH")
+    print(f"{Colors.WHITE}[2]{Colors.RESET} STRIPE CHARGE")
+    print(f"{Colors.WHITE}[3]{Colors.RESET} PPCP")
+    print(f"{Colors.WHITE}[4]{Colors.RESET} B3 AUTH")
+    print(f"{Colors.WHITE}[5]{Colors.RESET} B3 CHARGE")
+    print(f"{Colors.WHITE}[6]{Colors.RESET} BACK")
     print()
     
     choice = input(f"{Colors.WHITE}CHOOSE: {Colors.RESET}").strip()
     
-    gateway_map = {'1': 'stripe', '2': 'ppcp', '3': 'b3'}
+    gateway_map = {
+        '1': 'stripe',
+        '2': 'stripe_charge',
+        '3': 'ppcp',
+        '4': 'b3',
+        '5': 'b3charge'
+    }
     gateway = gateway_map.get(choice)
     
     if not gateway:
@@ -606,25 +614,64 @@ def showBuyMenu():
     clearScreen()
     printBanner()
     
-    print(f"{Colors.WHITE}PUBLIC API KEYS:{Colors.RESET}")
-    print(f"{Colors.GREEN}  💵 $5  → 7 DAYS{Colors.RESET}")
-    print(f"{Colors.GREEN}  💵 $10 → 15 DAYS{Colors.RESET}")
-    print(f"{Colors.GREEN}  💵 $15 → 30 DAYS{Colors.RESET}\n")
+    print(f"{Colors.CYAN}{'='*50}{Colors.RESET}")
+    print(f"{Colors.WHITE}CHECKMATE API - PRICING{Colors.RESET}")
+    print(f"{Colors.CYAN}{'='*50}{Colors.RESET}\n")
     
-    print(f"{Colors.CYAN}PRIVATE API: $20/MONTH{Colors.RESET}")
-    print(f"{Colors.WHITE}Exclusive Features:{Colors.RESET}")
-    print(f"  {Colors.GREEN}✓{Colors.RESET} Dedicated server (faster response)")
-    print(f"  {Colors.GREEN}✓{Colors.RESET} Not listed on status.isnotsin.com")
-    print(f"  {Colors.GREEN}✓{Colors.RESET} Priority support & updates")
-    print(f"  {Colors.GREEN}✓{Colors.RESET} All gateways: Stripe, PPCP, B3")
-    print(f"  {Colors.GREEN}✓{Colors.RESET} BIN checker included")
-    print(f"  {Colors.GREEN}✓{Colors.RESET} Proxy paramater support")
-    print(f"  {Colors.GREEN}✓{Colors.RESET} Perfect for building your own tools\n")
+    print(f"{Colors.WHITE}API KEY OPTIONS:{Colors.RESET}\n")
     
-    print(f"{Colors.CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Colors.RESET}")
-    print(f"{Colors.WHITE}Contact: {Colors.CYAN}@isnotsin{Colors.RESET}")
-    print(f"{Colors.WHITE}Payment: {Colors.CYAN}GCash/Maya/Binance USDT{Colors.RESET}")
-    print(f"{Colors.CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Colors.RESET}\n")
+    print(f"{Colors.GREEN}STANDARD KEY (7 DAYS) - $10{Colors.RESET}")
+    print(f"  - Full access to all gateways")
+    print(f"  - Stripe Auth & Charge")
+    print(f"  - PPCP (PayPal Commerce Platform)")
+    print(f"  - Braintree Auth & Charge")
+    print(f"  - BIN checker included")
+    print(f"  - Proxy parameter support")
+    print(f"  - Built-in site rotation")
+    print(f"  - 100 requests/minute\n")
+    
+    print(f"{Colors.CYAN}PRIVATE API (30 DAYS) - $15{Colors.RESET}")
+    print(f"  - Dedicated API instance")
+    print(f"  - All standard features included")
+    print(f"  - Higher rate limits (200 req/min)")
+    print(f"  - Priority support")
+    print(f"  - Not listed on public status page")
+    print(f"  - Perfect for building your own tools")
+    print(f"  - Custom integrations available\n")
+    
+    print(f"{Colors.CYAN}{'='*50}{Colors.RESET}")
+    print(f"{Colors.WHITE}AVAILABLE GATEWAYS:{Colors.RESET}")
+    print(f"{Colors.CYAN}{'='*50}{Colors.RESET}\n")
+    
+    print(f"{Colors.GREEN}[STRIPE]{Colors.RESET}")
+    print(f"  /stripe - Card authorization (no charge)")
+    print(f"  /stripe_charge - Full checkout with charge\n")
+    
+    print(f"{Colors.GREEN}[PPCP]{Colors.RESET}")
+    print(f"  /ppcp - PayPal Commerce Platform\n")
+    
+    print(f"{Colors.GREEN}[BRAINTREE]{Colors.RESET}")
+    print(f"  /b3 - Card authorization (no charge)")
+    print(f"  /b3charge - Full checkout with charge\n")
+    
+    print(f"{Colors.GREEN}[EXTRAS]{Colors.RESET}")
+    print(f"  /bin - BIN checker (no auth required)\n")
+    
+    print(f"{Colors.CYAN}{'='*50}{Colors.RESET}")
+    print(f"{Colors.WHITE}CONTACT & PAYMENT:{Colors.RESET}")
+    print(f"{Colors.CYAN}{'='*50}{Colors.RESET}\n")
+    
+    print(f"{Colors.WHITE}Telegram:{Colors.RESET} {Colors.CYAN}@isnotsin{Colors.RESET}")
+    print(f"{Colors.WHITE}Website:{Colors.RESET} {Colors.CYAN}https://isnotsin.com{Colors.RESET}")
+    print(f"{Colors.WHITE}Status:{Colors.RESET} {Colors.CYAN}https://status.isnotsin.com{Colors.RESET}")
+    print(f"{Colors.WHITE}Docs:{Colors.RESET} {Colors.CYAN}https://api.isnotsin.com{Colors.RESET}\n")
+    
+    print(f"{Colors.WHITE}Payment Methods:{Colors.RESET}")
+    print(f"  - Cryptocurrency (USDT)")
+    print(f"  - PayPal")
+    print(f"  - Other methods available\n")
+    
+    print(f"{Colors.CYAN}{'='*50}{Colors.RESET}\n")
     
     input(f"{Colors.WHITE}Press ENTER to return...{Colors.RESET}")
 
@@ -673,17 +720,21 @@ def selectGateway():
     clearScreen()
     printBanner()
     print(f"{Colors.CYAN}SELECT GATEWAY:{Colors.RESET}\n")
-    print(f"{Colors.WHITE}[1]{Colors.RESET} STRIPE")
-    print(f"{Colors.WHITE}[2]{Colors.RESET} PPCP")
-    print(f"{Colors.WHITE}[3]{Colors.RESET} B3")
+    print(f"{Colors.WHITE}[1]{Colors.RESET} STRIPE AUTH")
+    print(f"{Colors.WHITE}[2]{Colors.RESET} STRIPE CHARGE")
+    print(f"{Colors.WHITE}[3]{Colors.RESET} PPCP")
+    print(f"{Colors.WHITE}[4]{Colors.RESET} B3 AUTH")
+    print(f"{Colors.WHITE}[5]{Colors.RESET} B3 CHARGE")
     print()
     
     choice = input(f"{Colors.WHITE}CHOOSE: {Colors.RESET}").strip()
     
     gateway_map = {
         '1': 'stripe',
-        '2': 'ppcp',
-        '3': 'b3'
+        '2': 'stripe_charge',
+        '3': 'ppcp',
+        '4': 'b3',
+        '5': 'b3charge'
     }
     
     return gateway_map.get(choice)
@@ -693,7 +744,16 @@ def selectSiteMode(gateway):
     printBanner()
     
     sites = loadSites(gateway)
-    builtin_key = f"SIN-{gateway.upper()}"
+    
+    base_gateway_map = {
+        'stripe': 'STRIPE',
+        'stripe_charge': 'STRIPE',
+        'ppcp': 'PPCP',
+        'b3': 'B3',
+        'b3charge': 'B3'
+    }
+    builtin_base = base_gateway_map.get(gateway, gateway.upper())
+    builtin_key = f"SIN-{builtin_base}"
     
     print(f"{Colors.CYAN}SELECT SITE MODE FOR {gateway.upper()}:{Colors.RESET}\n")
     print(f"{Colors.WHITE}[1]{Colors.RESET} USE BUILT-IN SITES {Colors.GREEN}({builtin_key} - Random){Colors.RESET}")
