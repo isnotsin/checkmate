@@ -664,12 +664,12 @@ def showBuyMenu():
     print(f"{Colors.WHITE}Telegram:{Colors.RESET} {Colors.CYAN}@isnotsin{Colors.RESET}")
     print(f"{Colors.WHITE}Website:{Colors.RESET} {Colors.CYAN}https://isnotsin.com{Colors.RESET}")
     print(f"{Colors.WHITE}Status:{Colors.RESET} {Colors.CYAN}https://status.isnotsin.com{Colors.RESET}")
-    print(f"{Colors.WHITE}Docs:{Colors.RESET} {Colors.CYAN}https://api.isnotsin.com{Colors.RESET}\n")
+    print(f"{Colors.WHITE}Docs:{Colors.RESET} {Colors.CYAN}https://github.com/isnotsin/api.isnotsin.com{Colors.RESET}\n")
     
     print(f"{Colors.WHITE}Payment Methods:{Colors.RESET}")
-    print(f"  - Cryptocurrency (USDT)")
-    print(f"  - PayPal")
-    print(f"  - Other methods available\n")
+    print(f"  - Binance (USDT)")
+    print(f"  - Gcash")
+    print(f"  - Maya\n")
     
     print(f"{Colors.CYAN}{'='*50}{Colors.RESET}\n")
     
